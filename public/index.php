@@ -39,8 +39,8 @@ $menu2 = [
 $server = new Server(function (ServerRequestInterface $request) use ($menu2, $client) {
     $body = json_decode($request->getBody()->getContents(), true);
     var_dump($body);
-    $chatId = $body['message']['chat']['id'];
-    $text = $body['message']['text'];
+    $chatId = $body['callback_query']['chat']['id'];
+    $text = $body['callback_query']['data'];
     $bot = new \TelegramBot\Api\BotApi(TELEGRAM_TOKEN);
     $keyboard = new \TelegramBot\Api\Types\Inline\InlineKeyboardMarkup([$menu2], true, true); // true for one-time keyboard
 
