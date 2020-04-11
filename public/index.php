@@ -28,25 +28,60 @@ $menu = [
 $menu2 = [
     [
         'text' => ETH_COURSE,
-        'data' => 'data1',
+        'callback_data' => ETH_COURSE,
     ],
     [
         'text' => MORIARTY_BALANCE,
-        'data' => 'data2',
+        'callback_data' => MORIARTY_BALANCE,
     ]
 ];
 
-$server = new Server(function (ServerRequestInterface $request) use ($menu2, $client) {
+$server = new Server(function (ServerRequestInterface $request) use ($menu, $menu2, $client) {
     $body = json_decode($request->getBody()->getContents(), true);
     var_dump($body);
-    $chatId = $body['callback_query']['chat']['id'];
-    $text = $body['callback_query']['data'];
+    if (empty($body['message'])) {
+        $text = $body['callback_query']['data'];
+        $chatId = $body['callback_query']['message']['chat']['id'];
+    } else {
+        $text = $body['message']['text'];
+        $chatId = $body['message']['chat']['id'];
+    }
+
     $bot = new \TelegramBot\Api\BotApi(TELEGRAM_TOKEN);
-    $keyboard = new \TelegramBot\Api\Types\Inline\InlineKeyboardMarkup([$menu2], true, true); // true for one-time keyboard
+    $keyboard = new \TelegramBot\Api\Types\ReplyKeyboardMarkup([$menu], true, true); // true for one-time keyboard
+    $inlineKeyboard = new \TelegramBot\Api\Types\Inline\InlineKeyboardMarkup([$menu2], true, true); // true for one-time keyboard
 
     echo $text;
     if ($text === '/start') {
         $bot->sendMessage($chatId, 'Выберите в меню, что интересует', null, false, null, $keyboard);
+    } else if ('/manual') {
+        $buttons = json_encode([
+            'inline_keyboard' => [
+                [
+                    [
+                        "text" => ETH_COURSE,
+                        "callback_data" => ETH_COURSE,
+                    ],
+                    [
+                        "text" => MORIARTY_BALANCE,
+                        "callback_data" => MORIARTY_BALANCE,
+                    ],
+                ]
+            ],
+        ], true);
+
+        $ch = curl_init('https://api.telegram.org/bot' . TELEGRAM_TOKEN . '/sendMessage');
+        curl_setopt_array($ch, array(
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query($buttons),
+            CURLOPT_SSL_VERIFYPEER => 0,
+            CURLOPT_RETURNTRANSFER => 1,
+            CURLOPT_TIMEOUT => 10
+        ));
+        $r = json_decode(curl_exec($ch), true);
+        var_dump($r);
+    } else if ($text === '/inline') {
+            $bot->sendMessage($chatId, 'Выберите в меню, что интересует', null, false, null, $inlineKeyboard);
     } else if ($text === ETH_COURSE) {
         $apiRequest = $client->request('GET', ETHERSCAN_API_ETHPRICE_URL);
 
