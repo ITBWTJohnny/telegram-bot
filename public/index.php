@@ -25,18 +25,27 @@ $menu = [
     MORIARTY_BALANCE,
 ];
 
-$server = new Server(function (ServerRequestInterface $request) use ($menu, $client) {
-    $body = json_decode($request->getBody()->getContents(), true);
+$menu2 = [
+    [
+        'text' => ETH_COURSE,
+        'data' => 'data1',
+    ],
+    [
+        'text' => MORIARTY_BALANCE,
+        'data' => 'data2',
+    ]
+];
 
+$server = new Server(function (ServerRequestInterface $request) use ($menu2, $client) {
+    $body = json_decode($request->getBody()->getContents(), true);
+    var_dump($body);
     $chatId = $body['message']['chat']['id'];
     $text = $body['message']['text'];
     $bot = new \TelegramBot\Api\BotApi(TELEGRAM_TOKEN);
-    $keyboard = new \TelegramBot\Api\Types\ReplyKeyboardMarkup([$menu], true, true); // true for one-time keyboard
+    $keyboard = new \TelegramBot\Api\Types\Inline\InlineKeyboardMarkup([$menu2], true, true); // true for one-time keyboard
 
     echo $text;
     if ($text === '/start') {
-        $keyboard = new \TelegramBot\Api\Types\ReplyKeyboardMarkup([$menu], true, true); // true for one-time keyboard
-
         $bot->sendMessage($chatId, 'Выберите в меню, что интересует', null, false, null, $keyboard);
     } else if ($text === ETH_COURSE) {
         $apiRequest = $client->request('GET', ETHERSCAN_API_ETHPRICE_URL);
