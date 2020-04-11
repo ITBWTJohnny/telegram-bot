@@ -49,12 +49,12 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
 
     $bot = new \TelegramBot\Api\BotApi(TELEGRAM_TOKEN);
     $keyboard = new \TelegramBot\Api\Types\ReplyKeyboardMarkup([$menu], true, true); // true for one-time keyboard
-    $inlineKeyboard = new \TelegramBot\Api\Types\Inline\InlineKeyboardMarkup([$menu2], true, true); // true for one-time keyboard
+    $inlineKeyboard = new \TelegramBot\Api\Types\Inline\InlineKeyboardMarkup([$menu2]); // true for one-time keyboard
 
     echo $text;
     if ($text === '/start') {
         $bot->sendMessage($chatId, 'Выберите в меню, что интересует', null, false, null, $keyboard);
-    } else if ('/manual') {
+    } else if ($text === '/manual') {
         $buttons = json_encode([
             'inline_keyboard' => [
                 [
@@ -70,10 +70,15 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
             ],
         ], true);
 
+        $message = [
+            "chat_id" => $chatId,
+            "text" => $text,
+            "reply_markup" => $buttons
+        ];
         $ch = curl_init('https://api.telegram.org/bot' . TELEGRAM_TOKEN . '/sendMessage');
         curl_setopt_array($ch, array(
             CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => http_build_query($buttons),
+            CURLOPT_POSTFIELDS => http_build_query($message),
             CURLOPT_SSL_VERIFYPEER => 0,
             CURLOPT_RETURNTRANSFER => 1,
             CURLOPT_TIMEOUT => 10
