@@ -1,14 +1,17 @@
 <?php
 
+use Clue\React\Buzz\Browser;
 use Psr\Http\Message\ServerRequestInterface;
 use React\EventLoop\Factory;
 use React\Http\Response;
 use React\Http\Server;
+use Symfony\Component\DomCrawler\Crawler;
 
 require __DIR__ . '/../vendor/autoload.php';
 
 $loop = Factory::create();
 $client = new React\HttpClient\Client($loop);
+$browserClient = new Browser($loop);
 
 const ETHERSCAN_API_KEY = 'KEY';
 const ETHERSCAN_MORIARTY_ADDRESS = '0xE53B252391638CbB780d98b7320132F03A6cE9dE';
@@ -36,7 +39,7 @@ $menu2 = [
     ]
 ];
 
-$server = new Server(function (ServerRequestInterface $request) use ($menu, $menu2, $client) {
+$server = new Server(function (ServerRequestInterface $request) use ($menu, $menu2, $client, $browserClient) {
     $body = json_decode($request->getBody()->getContents(), true);
     var_dump($body);
     if (empty($body['message'])) {
@@ -101,9 +104,17 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
     } else if ($text === MORIARTY_BALANCE) {
         $apiRequest = $client->request('GET', ETHERSCAN_API_BALANCE_URL);
 
-        $apiRequest->on('response', function ($response) use ($bot, $chatId, $keyboard) {
-            $response->on('data', function ($chunk) use ($bot, $chatId, $keyboard) {
+        $apiRequest->on('response', function ($response) use ($browserClient, $bot, $chatId, $keyboard) {
+            $response->on('data', function ($chunk) use ($browserClient, $bot, $chatId, $keyboard) {
                 $data = json_decode($chunk, true);
+
+                $browserClient->get('https://etherscan.io/readcontract?m=normal&a='. ETHERSCAN_MORIARTY_ADDRESS .'&v='. ETHERSCAN_MORIARTY_ADDRESS)
+                    ->then(function(\Psr\Http\Message\ResponseInterface $response) use ($data, $bot, $keyboard) {
+                        $crawler = new Crawler((string) $response->getBody());
+                        $maxBalance = trim($crawler->filter('#readHeading10 .form-group')->text());
+                        echo $maxBalance;
+                    });
+
                 $bot->sendMessage($chatId, ($data['result']  / 10**18) . '$', null, false, null, $keyboard);
             });
         });
