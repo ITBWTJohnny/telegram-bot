@@ -41,6 +41,8 @@ $menu2 = [
 ];
 
 $server = new Server(function (ServerRequestInterface $request) use ($menu, $menu2, $client) {
+    $body = json_decode($request->getBody()->getContents(), true);
+    var_dump($body);
 
     if (empty($body['message'])) {
         $text = $body['callback_query']['data'];
