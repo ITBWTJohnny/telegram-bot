@@ -18,6 +18,7 @@ const ETHERSCAN_MORIARTY_ADDRESS = '0xE53B252391638CbB780d98b7320132F03A6cE9dE';
 const ETHERSCAN_API_ETHPRICE_URL = 'https://api.etherscan.io/api?module=stats&action=ethprice&apikey=' . ETHERSCAN_API_KEY;
 const ETHERSCAN_API_BALANCE_URL = 'https://api.etherscan.io/api?module=account&action=balance&address=' .
     ETHERSCAN_MORIARTY_ADDRESS . '&tag=latest&apikey=' . ETHERSCAN_API_KEY;
+const MORIARTY_CONTRACT_API_URL = 'https://api.moriarty-2.io/api/game/contract/';
 
 const TELEGRAM_TOKEN = 'TOKEN';
 
@@ -39,9 +40,8 @@ $menu2 = [
     ]
 ];
 
-$server = new Server(function (ServerRequestInterface $request) use ($menu, $menu2, $client, $browserClient) {
-    $body = json_decode($request->getBody()->getContents(), true);
-    var_dump($body);
+$server = new Server(function (ServerRequestInterface $request) use ($menu, $menu2, $client) {
+
     if (empty($body['message'])) {
         $text = $body['callback_query']['data'];
         $chatId = $body['callback_query']['message']['chat']['id'];
@@ -102,20 +102,22 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
 
         $apiRequest->end();
     } else if ($text === MORIARTY_BALANCE) {
-        $apiRequest = $client->request('GET', ETHERSCAN_API_BALANCE_URL);
+        $apiRequest = $client->request('GET', MORIARTY_CONTRACT_API_URL);
 
-        $apiRequest->on('response', function ($response) use ($browserClient, $bot, $chatId, $keyboard) {
-            $response->on('data', function ($chunk) use ($browserClient, $bot, $chatId, $keyboard) {
+        $apiRequest->on('response', function ($response) use ($bot, $chatId, $keyboard) {
+            $response->on('data', function ($chunk) use ($bot, $chatId, $keyboard) {
                 $data = json_decode($chunk, true);
+                $currentBalance = $data['balance'];
+                $maxBalance = $data['max_balance'];
+                $result = round($currentBalance, 2) . ' ETH';
 
-                $browserClient->get('https://etherscan.io/readcontract?m=normal&a='. ETHERSCAN_MORIARTY_ADDRESS .'&v='. ETHERSCAN_MORIARTY_ADDRESS)
-                    ->then(function(\Psr\Http\Message\ResponseInterface $response) use ($data, $bot, $keyboard) {
-                        $crawler = new Crawler((string) $response->getBody());
-                        $maxBalance = trim($crawler->filter('#readHeading10 .form-group')->text());
-                        echo $maxBalance;
-                    });
+                if ($maxBalance > $currentBalance) {
+                    $percent = round($currentBalance / $maxBalance * 100, 2);
 
-                $bot->sendMessage($chatId, ($data['result']  / 10**18) . '$', null, false, null, $keyboard);
+                    $result .= ', max: ' . round($maxBalance, 2) . ' ETH '. "\u{2193}" . $percent . '%';
+                }
+
+                $bot->sendMessage($chatId, $result, null, false, null, $keyboard);
             });
         });
 
@@ -125,19 +127,10 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
     }
 
 
-    return new Response(
-        200,
-        array(
-            'Content-Type' => 'text/plain'
-        ),
-        "Hello world!\n"
-    );
 });
 
 $socket = new \React\Socket\Server('0.0.0.0:80', $loop);
-// $socket = new \React\Socket\SecureServer($socket, $loop, array(
-//     'local_cert' => isset($argv[2]) ? $argv[2] :'/etc/letsencrypt/live/johnny-dev.pp.ua/fullchain.pem'
-// ));
+
 $server->listen($socket);
 
 echo 'Listening on ' . str_replace('tls:', 'https:', $socket->getAddress()) . PHP_EOL;
