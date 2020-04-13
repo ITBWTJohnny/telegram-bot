@@ -114,7 +114,7 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
                 $result = round($currentBalance, 2) . ' ETH';
 
                 if ($maxBalance > $currentBalance) {
-                    $percent = round($currentBalance / $maxBalance * 100, 2);
+                    $percent = round(($maxBalance - $currentBalance) / $maxBalance * 100, 2);
 
                     $result .= ', max: ' . round($maxBalance, 2) . ' ETH '. "\u{2193}" . $percent . '%';
                 }
