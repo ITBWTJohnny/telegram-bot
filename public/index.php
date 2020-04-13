@@ -128,7 +128,13 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
         $bot->sendMessage($chatId, 'Выберите в меню, что интересует', null, false, null, $keyboard);
     }
 
-
+    return new Response(
+        200,
+        array(
+            'Content-Type' => 'text/plain'
+        ),
+        "Hello world!\n"
+    );
 });
 
 $socket = new \React\Socket\Server('0.0.0.0:80', $loop);
