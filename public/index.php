@@ -157,7 +157,7 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
                 $paymentSum = $paymentsByDate[$date] ?? 0;
                 $withdrawSum = $withdrawByDate[$date] ?? 0;
                 $dayDifferent = round($paymentSum - $withdrawSum, 2);
-                $char = $dayDifferent ? "\u{2191}" : (($dayDifferent == 0) ? '' : "\u{2193}");
+                $char = ($dayDifferent > 0) ? "\u{2191}" : (($dayDifferent == 0) ? '' : "\u{2193}");
                 $message .= $date . ' ' . $char . $dayDifferent . " ETH";
 
                 if ($today !== $date) {
@@ -165,7 +165,7 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
                 }
             }
             var_dump($message);
-            $bot->sendMessage($chatId, $message, null, false, null, $keyboard);
+//            $bot->sendMessage($chatId, $message, null, false, null, $keyboard);
         });
     } else if ($text === MORIARTY_SITE) {
         $bot->sendMessage($chatId, getenv('MORIARTY_URL'), null, false, null, $keyboard);
