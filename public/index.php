@@ -133,18 +133,38 @@ $server = new Server(function (ServerRequestInterface $request) use ($menu, $men
         $promise = \React\Promise\all([$paymentsPromise, $withdrawPromise])->then(function ($data) use ($bot, $chatId, $keyboard) {
             $paymentsData = $data[0]->resultRows;
             $withdrawData = $data[1]->resultRows;
+            $paymentsByDate = $withdrawByDate = [];
+
+            foreach ($paymentsData as $item) {
+                $paymentsByDate[$item['date']] = $item['sum'];
+            }
+
+            foreach ($withdrawData as $item) {
+                $withdrawByDate[$item['date']] = $item['sum'];
+            }
+
+            $period = new DatePeriod(
+                (new DateTime())->setTimestamp(strtotime('-6 day')),
+                new DateInterval('P1D'),
+                (new DateTime())->setTimestamp(strtotime('+1 day'))
+            );
 
             $message = '';
-            for ($i = 0; $i < 7; $i++) {
-                $dayDifferent = round($paymentsData[$i]['sum'] - $withdrawData[$i]['sum'], 2);
-                $char = $dayDifferent ? "\u{2191}" : "\u{2193}";
-                $message .= $paymentsData[$i]['date'] . ' ' . $char . $dayDifferent . " ETH";
+            $today = date('Y-m-d');
+            var_dump($period);
+            foreach ($period as $item) {
+                $date = $item->format('Y-m-d');
+                $paymentSum = $paymentsByDate[$date] ?? 0;
+                $withdrawSum = $withdrawByDate[$date] ?? 0;
+                $dayDifferent = round($paymentSum - $withdrawSum, 2);
+                $char = $dayDifferent ? "\u{2191}" : (($dayDifferent == 0) ? '' : "\u{2193}");
+                $message .= $date . ' ' . $char . $dayDifferent . " ETH";
 
-                if ($i !== 6) {
+                if ($today !== $date) {
                     $message .= "\n";
                 }
             }
-
+            var_dump($message);
             $bot->sendMessage($chatId, $message, null, false, null, $keyboard);
         });
     } else if ($text === MORIARTY_SITE) {
